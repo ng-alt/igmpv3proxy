@@ -14,15 +14,37 @@
 #define	IGMP_TIMER_SCALE	10
 #define IGMP_DEF_QI	        125
 #define IGMP_DEF_QRI		10
+/*  added start, zacker, 06/20/2009 */
+#define IGMP_DEF_QRI_LAST	1
+#define IGMP_DEF_QRI_UNIT	10
+/*  added end, zacker, 06/20/2009 */
 #define IGMP_DEF_RV	       	2
 #define IGMP_OQPI		((IGMP_DEF_RV * IGMP_DEF_QI) + IGMP_DEF_QRI/2)
 #define IGMP_GMI		((IGMP_DEF_RV * IGMP_DEF_QI) + IGMP_DEF_QRI)
-
+#define IGMP_WAN_VERSION_TIMER	150		//IGMP_DEF_QI * 2 /*  add by aspen Bai, 01/08/2008 */ 
 
 #define IGMP_MEMBERSHIP_QUERY		0x11
 #define IGMP_V1_MEMBERSHIP_REPORT   0x12
 #define IGMP_V2_MEMBERSHIP_REPORT   0x16
+#define IGMP_V2_LEAVE_GROUP			0x17    /*  add by aspen Bai, 12/18/2007 */
 #define IGMP_V3_MEMBERSHIP_REPORT   0x22
+
+/*  add start by aspen Bai, 01/07/2008 */
+#define MODE_IS_INCLUDE		1
+#define MODE_IS_EXCLUDE		2
+#define CHANGE_TO_INCLUDE	3
+#define CHANGE_TO_EXCLUDE	4
+#define ALLOW_NEW_SOURCES	5
+#define BLOCK_OLD_SOURCES	6
+/*  add end by aspen Bai, 01/07/2008 */
+
+/*  add start by aspen Bai, 01/07/2008 */
+#define GROUP_INIT    0
+#define FIRST_JOIN_GROUP    1
+#define LAST_LEAVE_GROUP	2
+#define FIRST_JOIN_GROUP_HAD_SEND 3
+#define LAST_LEAVE_GROUP_HAD_SEND 4
+/*  add end by aspen Bai, 01/07/2008 */
 
 #define IGMP_VERSION_1		0x12
 #define IGMP_VERSION_2		0x16
@@ -32,6 +54,7 @@
 
 #define	IGMP_ALL_ROUTERS	"224.0.0.2"
 #define	IGMP_ALL_ROUTERS_V3	"224.0.0.22"
+
 
 #define IGMP_SRSP(x)		((x)->igmpq_misc & (0x08))
 
@@ -59,7 +82,9 @@ typedef struct _igmp_group_t {
   struct in_addr          igmpg_addr;
   int                     igmpg_timer;
   int                     igmpg_fmode;
-  int 		    igmpg_version;
+  int					  igmpg_flags; /*  add by aspen Bai, 01/07/2008 */
+  int					  igmpg_type;  /*  add by aspen Bai, 01/07/2008 */
+  int 					  igmpg_version;
   igmp_rep_t*             igmpg_members;
   igmp_src_t*      	    igmpg_sources;
   struct _igmp_group_t*   igmpg_next;
@@ -100,7 +125,7 @@ typedef struct _igmp_grouprec_t {
   u_char          igmpg_datalen;		/* amount of aux data */
   u_short         igmpg_numsrc;		/* number of sources */
   struct in_addr  igmpg_group;		/* the group being reported */
-  struct in_addr  igmpg_sources[1];	/* source addresses */
+  /* struct in_addr  igmpg_sources[1];	source addresses */
 } igmp_grouprec_t;
 
 /* IGMPv3 report format */
@@ -113,3 +138,9 @@ typedef struct _igmp_report_t {
   igmp_grouprec_t igmpr_group[1]; /* group records */
 } igmp_report_t;
 
+/* multicast source set */
+typedef struct _igmp_mulsrc_t
+{
+	struct in_addr	        igmps_addr;
+	struct igmp_mulsrc_t*   igmps_next;	
+} igmp_mulsrc_t;

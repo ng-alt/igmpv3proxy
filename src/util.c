@@ -92,6 +92,44 @@ unsigned short in_cksum(unsigned short *addr, int len)
     return (answer);
 }
 
+char* get_if_by_idx(int idx, char* name)
+{
+    FILE *fp;
+    int row = 0, strLen = 0, i;
+    char str[10] = {0};
+    char buf[512] = {0};
+
+    if (!(fp = fopen("/proc/net/dev", "r"))) {
+        return NULL;
+    }
+
+    for (row = 0; row < (idx + 2); row++) {
+        if(!fgets(buf, sizeof(buf), fp))
+            return NULL;
+    }
+
+    i = 0;
+    strLen = 0;
+    while ((buf[i] != '\0') && (buf[i] != '\n') && strLen<IFNAMSIZ) {
+        if ((buf[i] != ' ') && (buf[i] != ':') &&
+            (buf[i] != '\0') && (buf[i] != '\n')) {
+            str[strLen] = buf[i];
+            strLen++;
+        }
+        else if (buf[i] == ':') {
+            str[strLen] = '\0';
+            buf[i] = ' ';
+            break;
+        }
+        buf[i] = ' ';
+        i++;
+    }
+    strcpy(name, str);
+
+    fclose(fp);
+    return (name);
+}
+
 /*
  * interface_list_t* get_interface_list(short af, short flags, short unflags)
  *
@@ -113,7 +151,8 @@ interface_list_t* get_interface_list(short af, short flags, short unflags)
 
     list = ifp = ifprev = NULL;
     for (i=1; ; i++) {
-        p = if_indextoname(i, buf);
+        //p = if_indextoname(i, buf);
+        p = get_if_by_idx(i, buf);
         if (p == NULL)
             break;
         strncpy(ifr.ifr_name, p, IFNAMSIZ);
@@ -190,7 +229,8 @@ short set_interface_flags(char *ifname, short flags)
     struct ifreq ifr;
     int sockfd, err;
 
-    sockfd = socket(PF_INET, SOCK_DGRAM, 0);
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	//sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_IGMP);
     if (sockfd <= 0)
         return -1;
 	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
@@ -234,7 +274,7 @@ int mrouter_onoff(int sockfd, int onoff)
 
 	cmd = (onoff) ? MRT_INIT : MRT_DONE; 
 	i = 1;
-	err = setsockopt(sockfd, IPPROTO_IP, MRT_INIT, (void*)&i, sizeof(i));
+	err = setsockopt(sockfd, IPPROTO_IP, cmd, (void*)&i, sizeof(i));
 	return err; 
 }
 

@@ -1,4 +1,10 @@
+include ../config.mk
+include ../config.in
+
 SHELL=/bin/sh
+
+BINDIR=$(TARGETDIR)/usr/sbin
+ETCDIR=$(TARGETDIR)/etc
 
 ##
 ## Variables
@@ -12,15 +18,29 @@ TOP_DIR=.
 SRCDIR:=$(TOP_DIR)/src
 
 # Compiler flags
-CFLAGS+=-DLinux 
+#CFLAGS+=-D@OS@ 
 CFLAGS+=-O2 -Wall 
-CFLAGS+=-I/usr/include -I$(SRCDIR)/include
+CFLAGS+= -I$(SRCDIR)/include -I../../acos/include -I../../acos/shared
 
-CC=gcc
+ifeq ($(CONFIG_STATIC_PPPOE),y)
+CFLAGS  += -DSTATIC_PPPOE
+else
+CFLAGS  += -USTATIC_PPPOE
+endif
+
+#-I/usr/include
+#CC=@CC@
+
+THREAD_LIBS= -lpthread
 
 # Linker flags
-LDFLAGS+=-lpthread
+LDFLAGS += $(THREAD_LIBS)
+LDFLAGS	+= -L$(ROUTERDIR)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
+LDFLAGS += -L../../acos/shared -L$(TARGETDIR)/shared/usr/lib -lacos_shared
 
+ifeq ($(CONFIG_KERNEL_2_6_36),y)
+LDFLAGS	+= -lgcc_s
+endif
 
 # Object files
 OBJ_ALL=*.o
@@ -45,6 +65,7 @@ OBJS=$(SRC:.c=.o)
 
 # Default target :
 all: $(EXEC)
+
 
 $(EXEC): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(EXEC) $(OBJS)
@@ -73,9 +94,12 @@ doc:
 install:
 	@ echo "This target does currently nothing. The executable remain in"
 	@ echo "this directory for greater convinience when used in conjunction"
+	$(STRIP) $(EXEC)
+	cp $(EXEC) ${BINDIR}
+	cp ./etc/igmprt.conf ${ETCDIR}
 
 clean:
-	-rm $(TOP_DIR)/src/*.o
+	-rm -rf $(TOP_DIR)/src/*.o $(TOP_DIR)/$(EXEC)
 # Make ignore return status of commands begining with '-'
 mrproper: clean
 	-rm $(TOP_DIR)/$(EXEC) 

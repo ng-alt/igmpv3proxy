@@ -6,10 +6,13 @@
  *          Anis.Ben-Hellel@loria.fr 
  * MAJ: 7 Aout 2001
  ****************************************************************************/
+#define Linux
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <sys/param.h>
 
@@ -19,18 +22,16 @@
 #include <sys/ioctl.h>
 #include <sys/uio.h>
 
+
 #ifndef Linux
 #include <net/if.h>
 #include <net/if_var.h>
 #include <net/if_dl.h>
 #include <net/route.h>
 #else
-#include <linux/socket.h>
 #include <linux/if.h>
 #endif
-
 #include <netinet/in_systm.h>
-
 #ifdef Linux
 #include <linux/in.h>
 #include "ip.h"
@@ -45,6 +46,8 @@
 #include <netinet/ip_mroute.h>
 #endif
 #include <sys/syslog.h>
+
+
 
 #include "util.h"
 #include "igmp.h"
@@ -71,8 +74,8 @@ extern int forward_upstream;
 #ifdef Linux
 #define FD_COPY(f, t)   memcpy(t, f, sizeof(*(f)))
 #endif
-
-/*#define MAXCTRLSIZE						\
+/*
+#define MAXCTRLSIZE						\
 	(sizeof(struct cmsghdr) + sizeof(struct sockaddr_dl) +	\
 	sizeof(struct cmsghdr) + sizeof(int) + 32)
 
@@ -98,9 +101,10 @@ typedef struct _igmp_interface_t {
     int				 igmpi_qri;		/* query response interval */
     int				 igmpi_gmi;		/* group membership interval */
     int				 igmpi_oqp;		/* other querier present timer */
-    int			         igmpi_rv;		/* robustness variable */
+    int			     igmpi_rv;		/* robustness variable */
     int				 igmpi_ti_qi;	/* timer: query interval */
-    int                          igmpi_socket;	/* igmp socket */
+    int              igmpi_socket;	/* igmp socket */	
+	int				 ifp_udp_socket;/* udp socket */
     struct _igmp_interface_t*    igmpi_next;
     int				 igmpi_save_flags;	
     char*			 igmpi_buf;
@@ -132,6 +136,15 @@ typedef struct _igmp_router_t {
   int                     igmprt_socket;
     } igmp_router_t;
 
+#if (!defined LINUX26)
+ struct ip_msfilter {
+ 	__u32	imsf_multiaddr;	/* IP multicast address of group */
+ 	__u32	imsf_interface;	/* local IP address of interface */
+ 	__u32	imsf_fmode; 	/* filter mode */
+ 	__u32	imsf_numsrc;	/* number of sources in src list */
+ 	__u32  imsf_slist[1];	/* source list */
+ };
+#endif
 
 /***
  *
@@ -155,7 +168,7 @@ igmp_group_t*
 igmp_group_create(struct in_addr groupaddr);
 
 void
-igmp_group_cleanup(igmp_interface_t *ifp,igmp_group_t* gp);
+igmp_group_cleanup(igmp_group_t* gp);
 
 void
 igmp_group_handle_isex(igmp_router_t* router, igmp_interface_t* ifp, igmp_group_t* gp,
@@ -180,7 +193,7 @@ igmp_interface_group_lookup(igmp_interface_t *ifp, struct in_addr groupaddr);
 
 void
 igmp_interface_membership_report_v12(igmp_router_t* router, igmp_interface_t* ifp,struct in_addr src, 
-	igmpr_t* report, int len);
+	igmpr_t* report, int len, int version);
 
 void
 igmp_interface_print(igmp_interface_t* ifp);
@@ -234,7 +247,7 @@ igmprt_membership_query(igmp_router_t* igmprt, igmp_interface_t* ifp,
     struct in_addr *group, struct in_addr *sources, int numsrc, int SRSP);
 
 void
-receive_membership_query(igmp_interface_t *ifp,struct in_addr gp,struct in_addr *sources, u_long src_query,int numsrc, int srsp);
+receive_membership_query(igmp_router_t* igmprt,igmp_interface_t *ifp,struct in_addr gp,struct in_addr *sources, u_long src_query,int numsrc, int srsp,int version);
 
 void
 send_sh_query(igmp_router_t *router,igmp_interface_t *ifp);

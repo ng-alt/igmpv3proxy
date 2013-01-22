@@ -12,9 +12,16 @@
 
 #include "igmprt.h"
 
+/*  add start by aspen Bai, 12/07/2007 */
+#define IP_MSFILTER_SIZE(numsrc)  (sizeof(struct ip_msfilter) - sizeof(struct in_addr) \
+ + (numsrc) * sizeof(struct in_addr))   
+/*  add start by aspen Bai, 12/07/2007 */
+
 vifi_t numvifs;
 char buffer[IP_MSFILTER_SIZE(MAX_ADDRS)];
 unsigned long upstream;
+extern int lan_index;
+extern int wan_index;
 
 
 /*
@@ -52,10 +59,11 @@ void set_source_filter(
          }
 	 /*use setsockopt*/
 	 i = sizeof(*imsfp);
-	 if (setsockopt(router->igmprt_up_socket, IPPROTO_IP, IP_MSFILTER, imsfp,i) < 0 ){
+	 
+	 /*if (setsockopt(router->igmprt_up_socket, IPPROTO_IP, IP_MSFILTER, imsfp,i) < 0 ){
 		perror("setsockopt IP_MSFILTER"); 
 	 }
-         /*if (ioctl(router->igmprt_up_socket, SIOCSIPMSFILTER, imsfp) != 0){
+         if (ioctl(router->igmprt_up_socket, SIOCSIPMSFILTER, imsfp) != 0){
            perror("ioctl - SIOCSIPMSFILTER");*/
            //printf("ioctl error, group: %s, source: %s\n",inet_ntoa(gp->igmpg_addr.s_addr),inet_ntoa(sources[0].s_addr));
          //}
@@ -102,13 +110,14 @@ int k_proxy_add_vif (int socket,unsigned long vifaddr,vifi_t vifi)
 {
 	struct vifctl vc;
 	int error;
-	
+
 	vc.vifc_vifi = vifi;
 	vc.vifc_flags = 0;
-	vc.vifc_threshold = 0;
+	vc.vifc_threshold = 1;
 	vc.vifc_rate_limit = 0;
 	vc.vifc_lcl_addr.s_addr = vifaddr;
 	vc.vifc_rmt_addr.s_addr = INADDR_ANY;
+
 	if (error=setsockopt(socket, IPPROTO_IP, MRT_ADD_VIF,(char *)&vc, sizeof(vc)) <0){
 	  perror("setsockopt - MRT_ADD_VIF");
 	  return FALSE;
@@ -125,12 +134,18 @@ int k_proxy_add_vif (int socket,unsigned long vifaddr,vifi_t vifi)
 int k_proxy_del_mfc (int socket, u_long source, u_long group)
 {
 	struct mfcctl mc;
-	
 	mc.mfcc_origin.s_addr   = source;
 	mc.mfcc_mcastgrp.s_addr = group;
+	mc.mfcc_parent = wan_index;   /*  add by aspen Bai, 01/07/2008 */
+	
+	/*  add start by aspen Bai, 12/07/2007 */
+	/* clear the TTL vector
+     */
+    memset( mc.mfcc_ttls, 0, sizeof( mc.mfcc_ttls ) );   
+    /*  add end by aspen Bai, 12/07/2007 */
 	if (setsockopt(socket, IPPROTO_IP, MRT_DEL_MFC, (char *)&mc, sizeof(mc)) <0){
-	  perror("setsockopt - MRT_DEL_MFC");
-	  printf("k_del_mfc:error on setsockopt\n");
+	  //perror("setsockopt - MRT_DEL_MFC");
+	  //printf("k_del_mfc:error on setsockopt\n");
 	  return FALSE;
 	}
 	return TRUE;
@@ -151,11 +166,15 @@ int k_proxy_chg_mfc(int socket,u_long source,u_long group,vifi_t outvif,int fsta
     mc.mfcc_origin.s_addr = source;
     mc.mfcc_mcastgrp.s_addr = group;
     /* change me to the index of the upstream interface */
-    mc.mfcc_parent = 0;
+    mc.mfcc_parent = outvif; /*  add by aspen Bai, 12/07/2007 */
 #ifndef Linux    
-    mc.mfcc_oif = outvif;
+    mc.mfcc_oif = outvif; 
 #endif
-    mc.mfcc_ttls[outvif] = fstate;
+
+    /*  add start by aspen Bai, 12/07/2007 */
+     mc.mfcc_ttls[lan_index] = fstate;
+    /*  add end by aspen Bai, 12/07/2007 */
+    
     if (setsockopt(socket, IPPROTO_IP, MRT_ADD_MFC, (char *)&mc, sizeof(mc)) < 0) {
       perror("setsockopt - MRT_ADD_MFC");
       return(FALSE);
