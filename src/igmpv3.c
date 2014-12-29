@@ -17,7 +17,7 @@
 unsigned long upstream;
 int forward_upstream;
 
-/*  add start by aspen Bai, 01/08/2008 */
+/* Foxconn add start by aspen Bai, 01/08/2008 */
 igmp_mulsrc_t mulsrc;
 extern int wan_index;
 extern int lan_index;
@@ -27,12 +27,13 @@ extern int wan_igmp_version;
 extern unsigned long lan_ipaddr, lan_netmask;
 int wan_version_timer = IGMP_WAN_VERSION_TIMER;
 unsigned int general_query_count = 0;
-int emf_cfg_mfdb_find(struct in_addr group);//aspen
-/*  add end by aspen Bai, 01/08/2008 */
+/* Foxconn add end by aspen Bai, 01/08/2008 */
 
-/*  add start by aspen Bai, 02/29/2008 */
+#if !(defined RALINK_SDK)
+int emf_cfg_mfdb_group_find(struct in_addr group);
+
+/* Foxconn add start by aspen Bai, 02/29/2008 */
 /* For multicast throughput test */
-#if 1
 #include <linux/netlink.h>
 #define MAX_DATA_SIZE sizeof(emf_cfg_request_t)
 #define EMFCFG_OPER_TYPE_GET        1
@@ -69,7 +70,7 @@ typedef struct emf_cfg_mfdb_list
 	} mfdb_entry[0];
 } emf_cfg_mfdb_list_t;
 #endif
-/*  add end by aspen Bai, 02/29/2008 */
+/* Foxconn add end by aspen Bai, 02/29/2008 */
 
 /*
  * int check_src_set(src,set)
@@ -268,10 +269,10 @@ void igmp_group_handle_toex(
 	if(count == 1)
 		if(gp->igmpg_flags!=FIRST_JOIN_GROUP_HAD_SEND)
 			gp->igmpg_flags = FIRST_JOIN_GROUP; /* First join a group */
-		/*  removed start, zacker, 06/16/2009 */
+		/* Foxconn removed start, zacker, 06/16/2009 */
 		//else
 		//	gp->igmpg_flags = GROUP_INIT;
-		/*  removed end, zacker, 06/16/2009 */
+		/* Foxconn removed end, zacker, 06/16/2009 */
 
     old_src_set=(igmp_src_t *)gp->igmpg_sources;
     if (gp->igmpg_fmode == IGMP_FMODE_INCLUDE){
@@ -331,13 +332,13 @@ void igmp_group_handle_toex(
       set_source_filter(router,gp,upstream,member->membership.fmode,member->membership.numsources,member->membership.sources);
     }
 
-	/*  add start by aspen Bai, 12/07/2007 */
+	/* Foxconn add start by aspen Bai, 12/07/2007 */
     if(numsrc == 0)
     {
 		//printf("%s, %d\n",__FUNCTION__,__LINE__);
         k_proxy_chg_mfc(router->igmprt_socket,mulsrc.igmps_addr.s_addr,gp->igmpg_addr.s_addr,wan_index,1);
     }
-    /*  add end by aspen Bai, 12/07/2007 */
+    /* Foxconn add end by aspen Bai, 12/07/2007 */
 	igmp_info_print(router, (char *)__FUNCTION__);
 }
 
@@ -356,12 +357,12 @@ void igmp_group_handle_toin(
 {
   igmp_src_t *src,*old_src_set,*sr;
   struct in_addr set_src[MAX_ADDRS];
-  int i,n,num,count=0,igmplen;
-  igmp_group_t *gp1,*gp2;
+  int i,num,count=0;
+  igmp_group_t *gp1;
   membership_db* member;
   igmp_rep_t *rep;
 
-  	/*  add start by aspen Bai, 12/07/2007 */
+  	/* Foxconn add start by aspen Bai, 12/07/2007 */
 	if(!igmp_interface_group_lookup(ifp,gp->igmpg_addr))
 	{
 		//printf("%s, %d\n",__FUNCTION__,__LINE__);
@@ -398,11 +399,11 @@ void igmp_group_handle_toin(
 		if(wan_igmp_version != IGMP_VERSION_1)
 			k_proxy_del_mfc(router->igmprt_socket,mulsrc.igmps_addr.s_addr,gp->igmpg_addr.s_addr);
 	}
-	/*  removed start, zacker, 06/16/2009 */
+	/* Foxconn removed start, zacker, 06/16/2009 */
 	//else
 	//	gp->igmpg_flags = GROUP_INIT;
-	/*  removed end, zacker, 06/16/2009 */
-	/*  add end by aspen Bai, 12/07/2007 */
+	/* Foxconn removed end, zacker, 06/16/2009 */
+	/* Foxconn add end by aspen Bai, 12/07/2007 */
 
  
   old_src_set=(igmp_src_t *)gp->igmpg_sources;
@@ -514,11 +515,11 @@ igmp_group_handle_isex(
     int numsrc,
     struct in_addr *sources)
 {
-    igmp_src_t *src,*sr,*old_src_set;
+    igmp_src_t *src,*old_src_set;
     int i;
     membership_db* member;
 
-	/*  add start by aspen Bai, 01/31/2008 */
+	/* Foxconn add start by aspen Bai, 01/31/2008 */
 	/* In order to forward multicast packets automatically when gproxy run later than client joining a group */
 	//printf("%s, %d, general_query_count %d gp->igmpg_fmode %d,numsrc %d\n",__FUNCTION__,__LINE__,general_query_count,gp->igmpg_fmode,numsrc);
 	if(numsrc == 0)
@@ -531,7 +532,7 @@ igmp_group_handle_isex(
 			//printf("%s, %d\n",__FUNCTION__,__LINE__);
 		}
 	}
-	/*  add end by aspen Bai, 01/31/2008 */
+	/* Foxconn add end by aspen Bai, 01/31/2008 */
 
     /* Reset timer */
     gp->igmpg_timer = IGMP_GMI; /* ifp->igmpi_qi = GMI : GMI = (RBV * QI) + QRI */
@@ -549,10 +550,10 @@ igmp_group_handle_isex(
         else
           /* delete ( X-A)  delete (Y-A) */
           if ((check_src(src->igmps_source,sources,numsrc) == FALSE) && (check_src_set(src->igmps_source,old_src_set) == TRUE)){
-        /*  modified start, zacker, 06/20/2009 */
+        /* Foxconn modified start, zacker, 06/20/2009 */
         igmp_src_cleanup(gp,src);
         k_proxy_del_mfc (router->igmprt_socket, src->igmps_source.s_addr, gp->igmpg_addr.s_addr);
-        /*  modified end, zacker, 06/20/2009 */
+        /* Foxconn modified end, zacker, 06/20/2009 */
           }
       }   
     }
@@ -597,7 +598,7 @@ igmp_group_handle_isin(
     struct in_addr *sources)
 {
     igmp_src_t *src,*sr; 
-    struct in_addr *source;
+    //struct in_addr *source;
     struct in_addr set_src[MAX_ADDRS];
     int i,num;
     igmp_group_t *gp1;
@@ -675,10 +676,10 @@ void igmprt_timer_group(igmp_router_t* router,igmp_interface_t *ifp)
   igmp_group_t *gp;
   igmp_src_t   *src;
   int delete_gr;
-  int flag,count=0;
+  int flag;
   struct ip_mreq mreq;
   igmp_interface_t* upstream_interface, *ifp1;
-  struct in_addr up,srctmp;;
+  struct in_addr up;
   igmp_router_t* igmprt;
 	  
   for(gp=ifp->igmpi_groups;gp;gp=gp->igmpg_next){
@@ -688,10 +689,14 @@ void igmprt_timer_group(igmp_router_t* router,igmp_interface_t *ifp)
     /*handle group timer*/
     if (gp->igmpg_fmode == IGMP_FMODE_EXCLUDE){
       if ((gp->igmpg_timer == 0) && (ifp->igmpi_addr.s_addr == lan_ipaddr)){
-		  /*  add start by aspen Bai, 02/29/2008, for multicast throughput test */
+		  /* Foxconn add start by aspen Bai, 02/29/2008, for multicast throughput test */
+#if (defined RALINK_SDK)
+		  if(!rt_group_find(ntohl(gp->igmpg_addr.s_addr)))
+#else
 		  if(!emf_cfg_mfdb_group_find(gp->igmpg_addr))
+#endif
 			k_proxy_del_mfc(router->igmprt_socket,mulsrc.igmps_addr.s_addr,gp->igmpg_addr.s_addr);
-		  /*  add end by aspen Bai, 02/29/2008 */
+		  /* Foxconn add end by aspen Bai, 02/29/2008 */
     
     /* no more listeners to group */
     delete_gr = TRUE;
@@ -863,7 +868,7 @@ void igmprt_timer_source (igmp_router_t* router,igmp_interface_t *ifp)
 sch_query_t *igmp_sch_create( struct in_addr gp)
 {
     sch_query_t *sh;
-    if (sh=(sch_query_t *)malloc(sizeof(*sh))){
+    if ((sh=(sch_query_t *)malloc(sizeof(*sh)))){
         sh->gp_addr.s_addr = gp.s_addr;
         sh->sch_next = NULL;
     }
@@ -916,7 +921,13 @@ igmprt_membership_query(igmp_router_t* igmprt, igmp_interface_t* ifp,
     assert(igmprt != NULL);
     assert(ifp != NULL);
 
-	general_query_count++;
+#if (defined RALINK_SDK)
+    /* only do this for general membership query */
+    if (group->s_addr == 0)
+        clear_all_entries_report();
+#endif
+
+    general_query_count++;
     /* Allocate a buffer to build the query */ 
     if (numsrc != 0 && version == IGMP_VERSION_3) {
         pbuf = (char*) malloc(sizeof(*query) + numsrc * sizeof(struct in_addr));
@@ -932,7 +943,7 @@ igmprt_membership_query(igmp_router_t* igmprt, igmp_interface_t* ifp,
     query->igmpq_group.s_addr = group->s_addr; 
     query->igmpq_cksum = 0;
 
-    /*  modified start, zacker, 06/20/2009 */
+    /* Foxconn modified start, zacker, 06/20/2009 */
     /* Set the version specific fields */
     switch (ifp->igmpi_version) {
         case IGMP_VERSION_1:
@@ -942,16 +953,16 @@ igmprt_membership_query(igmp_router_t* igmprt, igmp_interface_t* ifp,
         case IGMP_VERSION_2:
             igmplen = 8;
             if (group->s_addr == 0)
-                query->igmpq_code = ifp->igmpi_qri;
+                query->igmpq_code = ifp->igmpi_qri * IGMP_TIMER_SCALE;
             else
-                query->igmpq_code = (IGMP_DEF_QRI_LAST * IGMP_DEF_QRI_UNIT);
+                query->igmpq_code = IGMP_TIMER_SCALE;
             break;
         case IGMP_VERSION_3:
             igmplen = sizeof(*query)+(numsrc-1)*sizeof(struct in_addr);
             if (group->s_addr == 0)
-                query->igmpq_code = ifp->igmpi_qri;
+                query->igmpq_code = ifp->igmpi_qri * IGMP_TIMER_SCALE;
             else
-                query->igmpq_code = (IGMP_DEF_QRI_LAST * IGMP_DEF_QRI_UNIT);
+                query->igmpq_code = IGMP_TIMER_SCALE;
 
             if (SRSP == TRUE) /*set supress router-side Processing*/
                 query->igmpq_misc=(ifp->igmpi_rv | 0x08);
@@ -981,7 +992,7 @@ igmprt_membership_query(igmp_router_t* igmprt, igmp_interface_t* ifp,
         sin.sin_addr.s_addr = group->s_addr;
     sendto(ifp->igmpi_socket, (void*) query, igmplen, 0, 
         (struct sockaddr*)&sin, sizeof(sin));
-    /*  modified end, zacker, 06/20/2009 */
+    /* Foxconn modified end, zacker, 06/20/2009 */
 	
     if (pbuf)
         free(pbuf);
@@ -1191,23 +1202,22 @@ int send_membership_report_v12(igmp_router_t* igmprt, struct in_addr group, int 
 	/* send igmpv2 membership report including all group report if we are queried */
 	if(group.s_addr == 0)
 	{
-	/*  added start, zacker, 05/11/2009, workaround sulution
+	/* Foxconn added start, zacker, 05/11/2009, workaround sulution
 	 * for v2 report can't send to wan while in snooping enabled @no_v2_report_in_snoop */
 #ifdef __CONFIG_IGMP_SNOOPING__
-#if (defined U12H072) || (defined U12H139) || (defined BCM5325E)
+#if (defined RALINK_SDK)
+#else
 		if (acosNvramConfig_match("emf_enable", "1"))
 		{
-			system("/usr/sbin/et robowr 0x4 0x0 0x00");
-		}
-#endif
-#if (defined WNR3500L) || (defined WNDR4500) || (defined WNR3500Lv2)
-		if (acosNvramConfig_match("emf_enable", "1"))
-		{
+#if (defined WNR3500L) || (defined BCM53115)
 			system("/usr/sbin/et robowr 0x4 0xE 0x0000");
+#elif (defined U12H072) || (defined U12H139) || (defined BCM5325E)
+			system("/usr/sbin/et robowr 0x4 0x0 0x00");
+#endif
 		}
 #endif
 #endif
-	/*  added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
+	/* Foxconn added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
 		for (ifp_1=igmprt->igmprt_interfaces; ifp_1;ifp_1=ifp_1->igmpi_next)
 		{
 			if(ifp_1->igmpi_addr.s_addr == lan_ipaddr)
@@ -1238,23 +1248,22 @@ int send_membership_report_v12(igmp_router_t* igmprt, struct in_addr group, int 
 					sendto(wan_igmp_socket, (void*) v2_report, size, 0, (struct sockaddr*)&sin, sizeof(sin));
 				}
 		}
-		/*  added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
+		/* Foxconn added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
 #ifdef __CONFIG_IGMP_SNOOPING__
-#if (defined U12H072) || (defined U12H139) || (defined BCM5325E)
+#if (defined RALINK_SDK)
+#else
 		usleep(100000);
 		if (acosNvramConfig_match("emf_enable", "1"))
 		{
-			system("/usr/sbin/et robowr 0x4 0x0 0x10");
-		}
-#endif
-#if (defined WNR3500L) || (defined WNDR4500) || (defined WNR3500Lv2)
-		if (acosNvramConfig_match("emf_enable", "1"))
-		{
+#if (defined WNR3500L) || (defined BCM53115)
 			system("/usr/sbin/et robowr 0x4 0xE 0x0AAA");
+#elif (defined U12H072) || (defined U12H139) || (defined BCM5325E)
+			system("/usr/sbin/et robowr 0x4 0x0 0x10");
+#endif
 		}
 #endif
 #endif
-		/*  added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
+		/* Foxconn added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
 	}
 	/* send igmp membership report to wan according to wan igmp version */
 	else
@@ -1274,25 +1283,24 @@ int send_membership_report_v12(igmp_router_t* igmprt, struct in_addr group, int 
 					free(pbuf);
 				 return 0;
 			}
-			/*  added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
+			/* Foxconn added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
 #ifdef __CONFIG_IGMP_SNOOPING__
-#if (defined U12H072) || (defined U12H139) || (defined BCM5325E)
+#if (defined RALINK_SDK)
+#else
 			if (acosNvramConfig_match("emf_enable", "1"))
 			{
+#if (defined WNR3500L) || (defined BCM53115)
+				system("/usr/sbin/et robowr 0x4 0xE 0x0000");
+#elif (defined U12H072) || (defined U12H139) || (defined BCM5325E)
 				system("/usr/sbin/et robowr 0x4 0x0 0x00");
+#endif
 			}
 #endif
-#if (defined WNR3500L) || (defined WNDR4500) || (defined WNR3500Lv2)
-    		if (acosNvramConfig_match("emf_enable", "1"))
-    		{
-    			system("/usr/sbin/et robowr 0x4 0xE 0x0000");
-    		}
 #endif
-#endif
-			/*  added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
+			/* Foxconn added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
 			memcpy(&(v2_report->igmpr_group),&group,4);
 
-			//igmplen += 4; /*  removed, zacker, 05/11/2009, no need */
+			//igmplen += 4; /* Foxconn removed, zacker, 05/11/2009, no need */
 			/* Checksum */
 			v2_report->igmpr_cksum = 0;
 			v2_report->igmpr_cksum = in_cksum((unsigned short*) v2_report, igmplen);
@@ -1302,23 +1310,22 @@ int send_membership_report_v12(igmp_router_t* igmprt, struct in_addr group, int 
 			sin.sin_addr.s_addr = group.s_addr;
 
 			sendto(wan_igmp_socket, (void*) v2_report, size, 0, (struct sockaddr*)&sin, sizeof(sin));
-			/*  added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
+			/* Foxconn added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
 #ifdef __CONFIG_IGMP_SNOOPING__
-#if (defined U12H072) || (defined U12H139) || (defined BCM5325E)
+#if (defined RALINK_SDK)
+#else
 			usleep(100000);
 			if (acosNvramConfig_match("emf_enable", "1"))
 			{
+#if (defined WNR3500L) || (defined BCM53115)
+				system("/usr/sbin/et robowr 0x4 0xE 0x0AAA");
+#elif (defined U12H072) || (defined U12H139) || (defined BCM5325E)
 				system("/usr/sbin/et robowr 0x4 0x0 0x10");
+#endif
 			}
 #endif
-#if (defined WNR3500L) || (defined WNDR4500) || (defined WNR3500Lv2)
-    		if (acosNvramConfig_match("emf_enable", "1"))
-    		{
-    			system("/usr/sbin/et robowr 0x4 0xE 0x0AAA");
-    		}
 #endif
-#endif
-			/*  added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
+			/* Foxconn added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
 		}
 	}
 	
@@ -1341,7 +1348,7 @@ int send_membership_report_v3(int is_be_queried)
     igmp_group_t *next_gp = NULL;
     int igmplen=0, recordnum=0;
     /* I suppose, the number of records is less than 64 */
-    igmp_group_t records[64];
+    //igmp_group_t records[64];
 	struct sockaddr_in sin;
 	igmp_grouprec_t  arecord;
     //printf("%s, %d\n",__FUNCTION__,__LINE__);/* an TO_IN report */
@@ -1433,10 +1440,10 @@ int send_membership_report_v3(int is_be_queried)
 					if(ifp1->igmpi_addr.s_addr == lan_ipaddr)
 					{
 						//printf("%s, %d\n",__FUNCTION__,__LINE__);/* an TO_IN report */
-						/*  modified start, zacker, 06/20/2009 */
+						/* Foxconn modified start, zacker, 06/20/2009 */
 						for (j=0,gp1=ifp1->igmpi_groups; gp1; gp1 = next_gp)
 						{
-							/*  added, zacker, 05/07/2009, @cleanup_after_leave */
+							/* Foxconn added, zacker, 05/07/2009, @cleanup_after_leave */
 							next_gp=gp1->igmpg_next;
 							//printf("%s, %d\n",__FUNCTION__,__LINE__);/* an TO_IN report */
 							/* send report to wan when we first join or leave a group */
@@ -1458,11 +1465,11 @@ int send_membership_report_v3(int is_be_queried)
 									igmplen += sizeof(igmp_grouprec_t);	
 								j++;
 							}
-							/*  added, zacker, 06/20/2009, @cleanup_after_leave */
+							/* Foxconn added, zacker, 06/20/2009, @cleanup_after_leave */
 							if (gp1->igmpg_flags == LAST_LEAVE_GROUP_HAD_SEND)
 								igmp_group_cleanup(gp1);
 						}
-						/*  modified end, zacker, 06/20/2009 */
+						/* Foxconn modified end, zacker, 06/20/2009 */
 
 						if(0==j)
 						{
@@ -1511,7 +1518,7 @@ int send_membership_report_v3(int is_be_queried)
 }
 
 
-/*  add start by aspen Bai, 01/07/2008 */
+/* Foxconn add start by aspen Bai, 01/07/2008 */
 /* 
  *	Change v12 membership report to v3 and send to wan port
  */
@@ -1519,7 +1526,7 @@ int send_membership_report_v12_to_v3(struct in_addr group, int type)
 {
 	igmp_report_t *igmpv3_report;
 	char *p1buf = NULL;
-    igmp_interface_t *ifp_2;
+    //igmp_interface_t *ifp_2;
 	int igmplen_12=0;
 	igmp_grouprec_t  arecord;
 	struct sockaddr_in sin;
@@ -1568,14 +1575,14 @@ int send_membership_report_v12_to_v3(struct in_addr group, int type)
 
 	return 0;
 }
-/*  add end by aspen Bai, 01/07/2008 */
+/* Foxconn add end by aspen Bai, 01/07/2008 */
 
 
-/*  add start by aspen Bai, 01/07/2008 */
+/* Foxconn add start by aspen Bai, 01/07/2008 */
 /*
  * Change v3 membership report to v12 and send to wan port
  */
-int send_membership_report_v3_to_v12()
+int send_membership_report_v3_to_v12(void)
 {
 	igmpr_t *v12_report;
     char *p2buf = NULL;
@@ -1604,7 +1611,7 @@ int send_membership_report_v3_to_v12()
             printf(" Can not allocate memoey for report packet\n");
             return -1;
         }
-        /*  added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
+        /* Foxconn added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
 #ifdef __CONFIG_IGMP_SNOOPING__
 #if (defined U12H072) || (defined U12H139) || (defined BCM5325E)
         if (acosNvramConfig_match("emf_enable", "1"))
@@ -1619,18 +1626,18 @@ int send_membership_report_v3_to_v12()
 		}
 #endif
 #endif
-        /*  added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
+        /* Foxconn added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
         v12_report = (igmpr_t *) p2buf;
         v12_report->igmpr_type = wan_igmp_version;
         v12_report->igmpr_code = 0;
         igmplen2 += 8;
-		/*  modified start, zacker, 06/20/2009 */
+		/* Foxconn modified start, zacker, 06/20/2009 */
 		for (ifp2=router.igmprt_interfaces; ifp2;ifp2=ifp2->igmpi_next)
 		{
 			if(ifp2->igmpi_addr.s_addr == lan_ipaddr)
 				for (gp2=ifp2->igmpi_groups; gp2; gp2 = next_gp)
 				{
-					/*  added, zacker, 05/07/2009, @cleanup_after_leave */
+					/* Foxconn added, zacker, 05/07/2009, @cleanup_after_leave */
 					next_gp = gp2->igmpg_next;
 					if (gp2->igmpg_addr.s_addr == 0){
 						continue;
@@ -1662,7 +1669,7 @@ int send_membership_report_v3_to_v12()
 					else
 						continue;
 
-					/*  added, zacker, 06/20/2009, @cleanup_after_leave */
+					/* Foxconn added, zacker, 06/20/2009, @cleanup_after_leave */
 					if (gp2->igmpg_flags == LAST_LEAVE_GROUP_HAD_SEND)
 						igmp_group_cleanup(gp2);
 
@@ -1677,8 +1684,8 @@ int send_membership_report_v3_to_v12()
 		}
 		if(p2buf)
 			free(p2buf);
-		/*  modified end, zacker, 06/20/2009 */
-		/*  added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
+		/* Foxconn modified end, zacker, 06/20/2009 */
+		/* Foxconn added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
 #ifdef __CONFIG_IGMP_SNOOPING__
 #if (defined U12H072) || (defined U12H139) || (defined BCM5325E)
 		usleep(100000);
@@ -1694,7 +1701,7 @@ int send_membership_report_v3_to_v12()
 		}
 #endif
 #endif
-		/*  added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
+		/* Foxconn added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
 	}
 
 	//if(p2buf)
@@ -1702,17 +1709,17 @@ int send_membership_report_v3_to_v12()
 
 	return 0;
 }
-/*  add end by aspen Bai, 01/07/2008 */
+/* Foxconn add end by aspen Bai, 01/07/2008 */
 
 
-/*  add start by aspen Bai, 01/07/2008 */
+/* Foxconn add start by aspen Bai, 01/07/2008 */
 /*
  * send out a v2 leave group message
  */
 int send_leave_group_v2(struct in_addr group)
 {
 	igmpr_t *v2_report;
-	igmp_interface_t* ifp;
+	//igmp_interface_t* ifp;
     char *pbuf = NULL;
     int igmplen=0,size;
 	struct sockaddr_in sin;
@@ -1754,7 +1761,7 @@ int send_leave_group_v2(struct in_addr group)
 
     return 0;
 }
-/*  add end by aspen Bai, 01/07/2008 */
+/* Foxconn add end by aspen Bai, 01/07/2008 */
 
 
 /*
@@ -1819,8 +1826,23 @@ void receive_membership_query(igmp_router_t* igmprt,
 		}
 }
 
-/*  add start by aspen Bai, 03/01/2008 */
-#if 1
+#if (defined RALINK_SDK)
+/* There is no emf/igs to handle membership report timeout
+ * after a generic/specific query, so we create it by ourselves, 
+ */
+void igmprt_timer_membership_report(igmp_interface_t *ifp)
+{
+	/* only do this when we are the querier */
+	if (ifp->igmpi_isquerier == TRUE) {
+		/* Max_Resp_Time + Max_Delay is reached */
+		if (ifp->igmpi_qi - ifp->igmpi_ti_qi ==
+			ifp->igmpi_qri + IGMP_MAX_HOST_REPORT_DELAY) {
+			sweap_no_report_members();
+		}
+	}
+}
+#else /* Broadcom solution */
+/* Foxconn add start by aspen Bai, 03/01/2008 */
 int emf_cfg_request_send_down(emf_cfg_request_t *buffer, int length)
 {
 	struct sockaddr_nl src_addr, dest_addr;
@@ -1863,7 +1885,7 @@ int emf_cfg_request_send_down(emf_cfg_request_t *buffer, int length)
 	if (nlh == NULL)
 	{
 		fprintf(stderr, "Out of memory allocating cfg buffer\n");
-		close(sock_fd); /*  added, zacker, 06/20/2009 */
+		close(sock_fd); /* Foxconn added, zacker, 06/20/2009 */
 		return (-1);
 	}
 
@@ -1889,7 +1911,7 @@ int emf_cfg_request_send_down(emf_cfg_request_t *buffer, int length)
 	if (ret < 0)
 	{
 		perror("sendmsg:");
-		close(sock_fd); /*  added, zacker, 06/20/2009 */
+		close(sock_fd); /* Foxconn added, zacker, 06/20/2009 */
 		if (nlh)
 			free(nlh);
 		return (ret);
@@ -1901,7 +1923,7 @@ int emf_cfg_request_send_down(emf_cfg_request_t *buffer, int length)
 	if (ret < 0)
 	{
 		perror("recvmsg:");
-		close(sock_fd); /*  added, zacker, 06/20/2009 */
+		close(sock_fd); /* Foxconn added, zacker, 06/20/2009 */
 		if (nlh)
 			free(nlh);
 		return (ret);
@@ -1954,5 +1976,5 @@ emf_cfg_mfdb_group_find(struct in_addr group)
 	return (0);
 }
 #endif
-/*  add end by aspen Bai, 03/01/2008 */
+/* Foxconn add end by aspen Bai, 03/01/2008 */
 

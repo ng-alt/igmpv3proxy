@@ -23,9 +23,7 @@ int log_level;
 /*
  * Set/reset the IP_MULTICAST_LOOP. Set/reset is specified by "flag".
  */
-void k_set_loop(socket, flag)
-    int socket;
-    int flag;
+void k_set_loop(int socket, int flag)
 {
     u_char loop;
 
@@ -38,16 +36,14 @@ void k_set_loop(socket, flag)
 /*
  * Set the IP_MULTICAST_IF option on local interface ifa.
  */
-void k_set_if(socket, ifa)
-    int socket;
-    u_long ifa;
+void k_set_if(int socket, u_long ifa)
 {
     struct in_addr adr;
 
     adr.s_addr = ifa;
     if (setsockopt(socket, IPPROTO_IP, IP_MULTICAST_IF,
 		   (char *)&adr, sizeof(adr)) < 0)
-	printf("setsockopt IP_MULTICAST_IF %s\n");
+	printf("setsockopt IP_MULTICAST_IF %s\n", strerror(errno));
 }
 
 
@@ -155,6 +151,7 @@ interface_list_t* get_interface_list(short af, short flags, short unflags)
         p = get_if_by_idx(i, buf);
         if (p == NULL)
             break;
+
         strncpy(ifr.ifr_name, p, IFNAMSIZ);
         err = ioctl(sockfd, SIOCGIFADDR, (void*)&ifr);
         psa = &ifr.ifr_ifru.ifru_addr;
@@ -287,8 +284,7 @@ int mrouter_onoff(int sockfd, int onoff)
  * comments: called by config_vifs_from_file()
  */
 int 
-wordToOption(word)
-    char *word;
+wordToOption(char *word)
 {
   if (EQUAL(word, ""))
     return EMPTY;
@@ -301,8 +297,7 @@ wordToOption(word)
   return UNKNOWN;
 }
 
-char * next_word(s)
-     char **s;
+char * next_word(char **s)
 {
   char *w;
   

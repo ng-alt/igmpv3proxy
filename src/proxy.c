@@ -12,14 +12,11 @@
 
 #include "igmprt.h"
 
-/*  add start by aspen Bai, 12/07/2007 */
-#define IP_MSFILTER_SIZE(numsrc)  (sizeof(struct ip_msfilter) - sizeof(struct in_addr) \
- + (numsrc) * sizeof(struct in_addr))   
-/*  add start by aspen Bai, 12/07/2007 */
-
+#if 0 /* not used */
 vifi_t numvifs;
 char buffer[IP_MSFILTER_SIZE(MAX_ADDRS)];
 unsigned long upstream;
+#endif
 extern int lan_index;
 extern int wan_index;
 
@@ -38,6 +35,7 @@ void set_source_filter(
                         struct in_addr *sources)
 
 {
+#if 0 /* not used */
        struct ip_msfilter *imsfp;
        int i;
 
@@ -68,6 +66,7 @@ void set_source_filter(
            //printf("ioctl error, group: %s, source: %s\n",inet_ntoa(gp->igmpg_addr.s_addr),inet_ntoa(sources[0].s_addr));
          //}
        }
+#endif
        return;
 }
 
@@ -92,7 +91,7 @@ void k_init_proxy(int socket)
 
 void k_stop_proxy(int socket)
 {
-    int v = 0;
+    //int v = 0;
     
     if (setsockopt(socket, IPPROTO_IP, MRT_DONE, (char *)NULL, 0) < 0)
       perror("setsockopt - MRT_DONE");
@@ -118,7 +117,7 @@ int k_proxy_add_vif (int socket,unsigned long vifaddr,vifi_t vifi)
 	vc.vifc_lcl_addr.s_addr = vifaddr;
 	vc.vifc_rmt_addr.s_addr = INADDR_ANY;
 
-	if (error=setsockopt(socket, IPPROTO_IP, MRT_ADD_VIF,(char *)&vc, sizeof(vc)) <0){
+	if ((error=setsockopt(socket, IPPROTO_IP, MRT_ADD_VIF,(char *)&vc, sizeof(vc))) <0){
 	  perror("setsockopt - MRT_ADD_VIF");
 	  return FALSE;
 	}
@@ -136,13 +135,13 @@ int k_proxy_del_mfc (int socket, u_long source, u_long group)
 	struct mfcctl mc;
 	mc.mfcc_origin.s_addr   = source;
 	mc.mfcc_mcastgrp.s_addr = group;
-	mc.mfcc_parent = wan_index;   /*  add by aspen Bai, 01/07/2008 */
+	mc.mfcc_parent = wan_index;   /* Foxconn add by aspen Bai, 01/07/2008 */
 	
-	/*  add start by aspen Bai, 12/07/2007 */
+	/* Foxconn add start by aspen Bai, 12/07/2007 */
 	/* clear the TTL vector
      */
     memset( mc.mfcc_ttls, 0, sizeof( mc.mfcc_ttls ) );   
-    /*  add end by aspen Bai, 12/07/2007 */
+    /* Foxconn add end by aspen Bai, 12/07/2007 */
 	if (setsockopt(socket, IPPROTO_IP, MRT_DEL_MFC, (char *)&mc, sizeof(mc)) <0){
 	  //perror("setsockopt - MRT_DEL_MFC");
 	  //printf("k_del_mfc:error on setsockopt\n");
@@ -161,19 +160,19 @@ int k_proxy_del_mfc (int socket, u_long source, u_long group)
 int k_proxy_chg_mfc(int socket,u_long source,u_long group,vifi_t outvif,int fstate)
 {
     struct mfcctl mc;
-    vifi_t vifi;
+    //vifi_t vifi;
     
     mc.mfcc_origin.s_addr = source;
     mc.mfcc_mcastgrp.s_addr = group;
     /* change me to the index of the upstream interface */
-    mc.mfcc_parent = outvif; /*  add by aspen Bai, 12/07/2007 */
-#ifndef Linux    
+    mc.mfcc_parent = outvif; /* Foxconn add by aspen Bai, 12/07/2007 */
+#if 0//ndef Linux
     mc.mfcc_oif = outvif; 
 #endif
 
-    /*  add start by aspen Bai, 12/07/2007 */
+    /* Foxconn add start by aspen Bai, 12/07/2007 */
      mc.mfcc_ttls[lan_index] = fstate;
-    /*  add end by aspen Bai, 12/07/2007 */
+    /* Foxconn add end by aspen Bai, 12/07/2007 */
     
     if (setsockopt(socket, IPPROTO_IP, MRT_ADD_MFC, (char *)&mc, sizeof(mc)) < 0) {
       perror("setsockopt - MRT_ADD_MFC");
@@ -191,7 +190,7 @@ create_membership(struct in_addr group,int fmode,int numsources,struct in_addr s
 {
         membership_db* member;
         int i;
-        if (member = (membership_db*) malloc(sizeof(*member))) {
+        if ((member = (membership_db*) malloc(sizeof(*member)))) {
                 member->membership.group = group;
                 member->membership.fmode = fmode;
                 member->membership.numsources = numsources;
@@ -223,7 +222,8 @@ find_membership(membership_db *membership,struct in_addr group)
  * deleate group entry from membership database
  */
 
-membership_db*
+//membership_db*
+void
 deleate_membership(igmp_router_t* igmprt,struct in_addr group)
 {
        membership_db *member;
@@ -271,12 +271,12 @@ update_multi(igmp_router_t *igmprt,struct in_addr group,int fmode,int nsources,s
 {
 
        int i,k;
-       struct ip_msfilter *imsfp;
+       //struct ip_msfilter *imsfp;
        membership_db* member;
        struct in_addr sr[MAX_ADDRS];
 
        /*find corresponding group*/
-       if (member = find_membership(igmprt->igmprt_membership_db,group)) {
+       if ((member = find_membership(igmprt->igmprt_membership_db,group))) {
            /*update group status using merging rules*/
            member->membership.fmode = (int)member->membership.fmode && (int)fmode;
            if (member->membership.fmode == IGMP_FMODE_INCLUDE) {

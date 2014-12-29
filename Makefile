@@ -37,10 +37,12 @@ THREAD_LIBS= -lpthread
 LDFLAGS += $(THREAD_LIBS)
 LDFLAGS	+= -L$(ROUTERDIR)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
 LDFLAGS += -L../../acos/shared -L$(TARGETDIR)/shared/usr/lib -lacos_shared
-
+#Foxconn add start by Hank 07/30/2012
+#For Kernel 2.6.36
 ifeq ($(CONFIG_KERNEL_2_6_36),y)
 LDFLAGS	+= -lgcc_s
 endif
+#Foxconn add end by Hank 07/30/2012
 
 # Object files
 OBJ_ALL=*.o
