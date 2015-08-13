@@ -36,7 +36,7 @@ THREAD_LIBS= -lpthread
 # Linker flags
 LDFLAGS += $(THREAD_LIBS)
 LDFLAGS	+= -L$(ROUTERDIR)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
-LDFLAGS += -L../../acos/shared -L$(TARGETDIR)/shared/usr/lib -lacos_shared
+LDFLAGS += -L../../acos/shared -L../../acos/acos_nat_cli -L$(TARGETDIR)/shared/usr/lib -L$(TARGETDIR)/usr/lib -lacos_shared -lnat
 #Foxconn add start by Hank 07/30/2012
 #For Kernel 2.6.36
 ifeq ($(CONFIG_KERNEL_2_6_36),y)
