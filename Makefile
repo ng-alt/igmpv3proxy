@@ -20,7 +20,7 @@ SRCDIR:=$(TOP_DIR)/src
 # Compiler flags
 #CFLAGS+=-D@OS@ 
 CFLAGS+=-O2 -Wall 
-CFLAGS+= -I$(SRCDIR)/include -I../../acos/include -I../../acos/shared
+CFLAGS+= -I$(SRCDIR)/include -I../../acos/include -I../../acos/shared 
 
 ifeq ($(CONFIG_STATIC_PPPOE),y)
 CFLAGS  += -DSTATIC_PPPOE
@@ -36,7 +36,7 @@ THREAD_LIBS= -lpthread
 # Linker flags
 LDFLAGS += $(THREAD_LIBS)
 LDFLAGS	+= -L$(ROUTERDIR)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
-LDFLAGS += -L../../acos/shared -L$(TARGETDIR)/shared/usr/lib -lacos_shared
+LDFLAGS += -L../../acos/shared -L$(TARGETDIR)/shared/usr/lib -lacos_shared -L../../acos/acos_nat_cli -lnat
 #Foxconn add start by Hank 07/30/2012
 #For Kernel 2.6.36
 ifeq ($(CONFIG_KERNEL_2_6_36),y)
