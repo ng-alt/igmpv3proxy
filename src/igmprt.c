@@ -34,6 +34,7 @@ int wan_igmp_socket2;
 int vlan2_vif;
 #endif
 
+
 #ifdef STATIC_PPPOE
 int sec_wan_status = 0;
 #endif
@@ -1537,13 +1538,6 @@ printf("ifp->ifl_name=%s\n",ifp->ifl_name);
 	        }
                 else
 #endif
-#if (defined OPENVPN_SUPPORT)
-		if (strncmp(ifp->ifl_name, "tun", 3) == 0)
-		{
-			printf("igmp: Skip OpenVPN interface %s(%s)\n", ifp->ifl_name, inet_ntoa(psin->sin_addr));
-		}
-		else
-#endif	/* OPENVPN_SUPPORT */
 		{
 			igmprt_interface_add(&router, psin->sin_addr, ifp->ifl_name,vifi);
 			k_proxy_add_vif(((igmp_router_t *) &router)->igmprt_socket,psin->sin_addr.s_addr,vifi);

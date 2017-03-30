@@ -33,6 +33,7 @@ unsigned int general_query_count = 0;
 extern int duplicate_igmp_on_vlan2;
 extern int wan_igmp_socket2;
 #endif
+
 #if !(defined RALINK_SDK)
 int emf_cfg_mfdb_group_find(struct in_addr group);
 
