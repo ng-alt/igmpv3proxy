@@ -27,12 +27,11 @@ extern int wan_igmp_version;
 extern unsigned long lan_ipaddr, lan_netmask;
 int wan_version_timer = IGMP_WAN_VERSION_TIMER;
 unsigned int general_query_count = 0;
-int emf_cfg_mfdb_find(struct in_addr group);//aspen
+int emf_cfg_mfdb_group_find(struct in_addr group);
 /*  add end by aspen Bai, 01/08/2008 */
 
 /*  add start by aspen Bai, 02/29/2008 */
 /* For multicast throughput test */
-#if 1
 #include <linux/netlink.h>
 #define MAX_DATA_SIZE sizeof(emf_cfg_request_t)
 #define EMFCFG_OPER_TYPE_GET        1
@@ -68,7 +67,7 @@ typedef struct emf_cfg_mfdb_list
 		unsigned int  pkts_fwd;       /* Number of packets forwarded */
 	} mfdb_entry[0];
 } emf_cfg_mfdb_list_t;
-#endif
+
 /*  add end by aspen Bai, 02/29/2008 */
 
 /*
@@ -356,8 +355,8 @@ void igmp_group_handle_toin(
 {
   igmp_src_t *src,*old_src_set,*sr;
   struct in_addr set_src[MAX_ADDRS];
-  int i,n,num,count=0,igmplen;
-  igmp_group_t *gp1,*gp2;
+  int i,num,count=0;
+  igmp_group_t *gp1;
   membership_db* member;
   igmp_rep_t *rep;
 
@@ -514,7 +513,7 @@ igmp_group_handle_isex(
     int numsrc,
     struct in_addr *sources)
 {
-    igmp_src_t *src,*sr,*old_src_set;
+    igmp_src_t *src,*old_src_set;
     int i;
     membership_db* member;
 
@@ -597,7 +596,7 @@ igmp_group_handle_isin(
     struct in_addr *sources)
 {
     igmp_src_t *src,*sr; 
-    struct in_addr *source;
+    //struct in_addr *source;
     struct in_addr set_src[MAX_ADDRS];
     int i,num;
     igmp_group_t *gp1;
@@ -675,10 +674,10 @@ void igmprt_timer_group(igmp_router_t* router,igmp_interface_t *ifp)
   igmp_group_t *gp;
   igmp_src_t   *src;
   int delete_gr;
-  int flag,count=0;
+  int flag;
   struct ip_mreq mreq;
   igmp_interface_t* upstream_interface, *ifp1;
-  struct in_addr up,srctmp;;
+  struct in_addr up;
   igmp_router_t* igmprt;
 	  
   for(gp=ifp->igmpi_groups;gp;gp=gp->igmpg_next){
@@ -863,7 +862,7 @@ void igmprt_timer_source (igmp_router_t* router,igmp_interface_t *ifp)
 sch_query_t *igmp_sch_create( struct in_addr gp)
 {
     sch_query_t *sh;
-    if (sh=(sch_query_t *)malloc(sizeof(*sh))){
+    if ((sh=(sch_query_t *)malloc(sizeof(*sh)))){
         sh->gp_addr.s_addr = gp.s_addr;
         sh->sch_next = NULL;
     }
@@ -942,16 +941,16 @@ igmprt_membership_query(igmp_router_t* igmprt, igmp_interface_t* ifp,
         case IGMP_VERSION_2:
             igmplen = 8;
             if (group->s_addr == 0)
-                query->igmpq_code = ifp->igmpi_qri;
+                query->igmpq_code = ifp->igmpi_qri * IGMP_TIMER_SCALE;
             else
-                query->igmpq_code = (IGMP_DEF_QRI_LAST * IGMP_DEF_QRI_UNIT);
+                query->igmpq_code = IGMP_TIMER_SCALE;
             break;
         case IGMP_VERSION_3:
             igmplen = sizeof(*query)+(numsrc-1)*sizeof(struct in_addr);
             if (group->s_addr == 0)
-                query->igmpq_code = ifp->igmpi_qri;
+                query->igmpq_code = ifp->igmpi_qri * IGMP_TIMER_SCALE;
             else
-                query->igmpq_code = (IGMP_DEF_QRI_LAST * IGMP_DEF_QRI_UNIT);
+                query->igmpq_code = IGMP_TIMER_SCALE;
 
             if (SRSP == TRUE) /*set supress router-side Processing*/
                 query->igmpq_misc=(ifp->igmpi_rv | 0x08);
@@ -1194,19 +1193,16 @@ int send_membership_report_v12(igmp_router_t* igmprt, struct in_addr group, int 
 	/*  added start, zacker, 05/11/2009, workaround sulution
 	 * for v2 report can't send to wan while in snooping enabled @no_v2_report_in_snoop */
 #ifdef __CONFIG_IGMP_SNOOPING__
-#if (defined U12H072) || (defined U12H139) || (defined BCM5325E)
 		if (acosNvramConfig_match("emf_enable", "1"))
 		{
-			system("/usr/sbin/et robowr 0x4 0x0 0x00");
-		}
-#endif
-#if (defined WNR3500L) || (defined WNDR4500) || (defined WNR3500Lv2)
-		if (acosNvramConfig_match("emf_enable", "1"))
-		{
+#if (defined WNR3500L) || (defined BCM53115) || (defined R6300v2)
 			system("/usr/sbin/et robowr 0x4 0xE 0x0000");
+#elif (defined U12H072) || (defined U12H139) || (defined BCM5325E)
+			system("/usr/sbin/et robowr 0x4 0x0 0x00");
+#endif
 		}
 #endif
-#endif
+
 	/*  added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
 		for (ifp_1=igmprt->igmprt_interfaces; ifp_1;ifp_1=ifp_1->igmpi_next)
 		{
@@ -1240,20 +1236,17 @@ int send_membership_report_v12(igmp_router_t* igmprt, struct in_addr group, int 
 		}
 		/*  added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
 #ifdef __CONFIG_IGMP_SNOOPING__
-#if (defined U12H072) || (defined U12H139) || (defined BCM5325E)
 		usleep(100000);
 		if (acosNvramConfig_match("emf_enable", "1"))
 		{
-			system("/usr/sbin/et robowr 0x4 0x0 0x10");
-		}
-#endif
-#if (defined WNR3500L) || (defined WNDR4500) || (defined WNR3500Lv2)
-		if (acosNvramConfig_match("emf_enable", "1"))
-		{
+#if (defined WNR3500L) || (defined BCM53115) //|| (defined R6300v2)
 			system("/usr/sbin/et robowr 0x4 0xE 0x0AAA");
+#elif (defined U12H072) || (defined U12H139) || (defined BCM5325E)
+			system("/usr/sbin/et robowr 0x4 0x0 0x10");
+#endif
 		}
 #endif
-#endif
+
 		/*  added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
 	}
 	/* send igmp membership report to wan according to wan igmp version */
@@ -1276,19 +1269,17 @@ int send_membership_report_v12(igmp_router_t* igmprt, struct in_addr group, int 
 			}
 			/*  added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
 #ifdef __CONFIG_IGMP_SNOOPING__
-#if (defined U12H072) || (defined U12H139) || (defined BCM5325E)
+
 			if (acosNvramConfig_match("emf_enable", "1"))
 			{
+#if (defined WNR3500L) || (defined BCM53115) || (defined R6300v2)
+				system("/usr/sbin/et robowr 0x4 0xE 0x0000");
+#elif (defined U12H072) || (defined U12H139) || (defined BCM5325E)
 				system("/usr/sbin/et robowr 0x4 0x0 0x00");
-			}
 #endif
-#if (defined WNR3500L) || (defined WNDR4500) || (defined WNR3500Lv2)
-    		if (acosNvramConfig_match("emf_enable", "1"))
-    		{
-    			system("/usr/sbin/et robowr 0x4 0xE 0x0000");
     		}
 #endif
-#endif
+
 			/*  added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
 			memcpy(&(v2_report->igmpr_group),&group,4);
 
@@ -1304,20 +1295,18 @@ int send_membership_report_v12(igmp_router_t* igmprt, struct in_addr group, int 
 			sendto(wan_igmp_socket, (void*) v2_report, size, 0, (struct sockaddr*)&sin, sizeof(sin));
 			/*  added start, zacker, 05/11/2009, @no_v2_report_in_snoop */
 #ifdef __CONFIG_IGMP_SNOOPING__
-#if (defined U12H072) || (defined U12H139) || (defined BCM5325E)
+
 			usleep(100000);
 			if (acosNvramConfig_match("emf_enable", "1"))
 			{
+#if (defined WNR3500L) || (defined BCM53115) // || (defined R6300v2)
+				system("/usr/sbin/et robowr 0x4 0xE 0x0AAA");
+#elif (defined U12H072) || (defined U12H139) || (defined BCM5325E)
 				system("/usr/sbin/et robowr 0x4 0x0 0x10");
-			}
 #endif
-#if (defined WNR3500L) || (defined WNDR4500) || (defined WNR3500Lv2)
-    		if (acosNvramConfig_match("emf_enable", "1"))
-    		{
-    			system("/usr/sbin/et robowr 0x4 0xE 0x0AAA");
     		}
 #endif
-#endif
+
 			/*  added end, zacker, 05/11/2009, @no_v2_report_in_snoop */
 		}
 	}
@@ -1341,7 +1330,7 @@ int send_membership_report_v3(int is_be_queried)
     igmp_group_t *next_gp = NULL;
     int igmplen=0, recordnum=0;
     /* I suppose, the number of records is less than 64 */
-    igmp_group_t records[64];
+    //igmp_group_t records[64];
 	struct sockaddr_in sin;
 	igmp_grouprec_t  arecord;
     //printf("%s, %d\n",__FUNCTION__,__LINE__);/* an TO_IN report */
@@ -1519,7 +1508,7 @@ int send_membership_report_v12_to_v3(struct in_addr group, int type)
 {
 	igmp_report_t *igmpv3_report;
 	char *p1buf = NULL;
-    igmp_interface_t *ifp_2;
+    //igmp_interface_t *ifp_2;
 	int igmplen_12=0;
 	igmp_grouprec_t  arecord;
 	struct sockaddr_in sin;
@@ -1575,7 +1564,7 @@ int send_membership_report_v12_to_v3(struct in_addr group, int type)
 /*
  * Change v3 membership report to v12 and send to wan port
  */
-int send_membership_report_v3_to_v12()
+int send_membership_report_v3_to_v12(void)
 {
 	igmpr_t *v12_report;
     char *p2buf = NULL;
@@ -1612,7 +1601,7 @@ int send_membership_report_v3_to_v12()
             system("/usr/sbin/et robowr 0x4 0x0 0x00");
         }
 #endif
-#if (defined WNR3500L) || (defined WNDR4500) || (defined WNR3500Lv2)
+#if (defined WNR3500L) || (defined WNDR4500) || (defined WNR3500Lv2) || (defined R6300v2)
 		if (acosNvramConfig_match("emf_enable", "1"))
 		{
 			system("/usr/sbin/et robowr 0x4 0xE 0x0000");
@@ -1712,7 +1701,7 @@ int send_membership_report_v3_to_v12()
 int send_leave_group_v2(struct in_addr group)
 {
 	igmpr_t *v2_report;
-	igmp_interface_t* ifp;
+	//igmp_interface_t* ifp;
     char *pbuf = NULL;
     int igmplen=0,size;
 	struct sockaddr_in sin;
@@ -1820,7 +1809,6 @@ void receive_membership_query(igmp_router_t* igmprt,
 }
 
 /*  add start by aspen Bai, 03/01/2008 */
-#if 1
 int emf_cfg_request_send_down(emf_cfg_request_t *buffer, int length)
 {
 	struct sockaddr_nl src_addr, dest_addr;
@@ -1953,6 +1941,6 @@ emf_cfg_mfdb_group_find(struct in_addr group)
 	}
 	return (0);
 }
-#endif
+
 /*  add end by aspen Bai, 03/01/2008 */
 

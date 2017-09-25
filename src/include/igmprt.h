@@ -6,57 +6,40 @@
  *          Anis.Ben-Hellel@loria.fr 
  * MAJ: 7 Aout 2001
  ****************************************************************************/
-#define Linux
+//#define Linux
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <sys/param.h>
-
 #include <sys/errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/uio.h>
-
-
-#ifndef Linux
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_dl.h>
-#include <net/route.h>
-#else
-#include <linux/if.h>
-#endif
-#include <netinet/in_systm.h>
-#ifdef Linux
-#include <linux/in.h>
-#include "ip.h"
-#else
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#endif
-#include <assert.h>
-#ifdef Linux
-#include <linux/mroute.h>
-#else
-#include <netinet/ip_mroute.h>
-#endif
 #include <sys/syslog.h>
 
-
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <netinet/in_systm.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <assert.h>
 
 #include "util.h"
 #include "igmp.h"
+#include "mroute.h"
+#include "acosNvramConfig.h"
 
-
+#if 0 /* not used */
 extern vifi_t     numvifs;
+#endif
 extern unsigned long upstream;
 extern int forward_upstream;
-
 
 #define UNKNOWN -1
 #define EMPTY 0
@@ -71,7 +54,11 @@ extern int forward_upstream;
 #define TRUE	         	1
 #define FALSE	         	0
 
-#ifdef Linux
+#ifndef isblank
+#define isblank(c) ((c) == ' ' || (c) == '\t')
+#endif
+
+#ifndef FD_COPY
 #define FD_COPY(f, t)   memcpy(t, f, sizeof(*(f)))
 #endif
 /*
@@ -104,7 +91,7 @@ typedef struct _igmp_interface_t {
     int			     igmpi_rv;		/* robustness variable */
     int				 igmpi_ti_qi;	/* timer: query interval */
     int              igmpi_socket;	/* igmp socket */	
-	int				 ifp_udp_socket;/* udp socket */
+    int				 ifp_udp_socket;/* udp socket */
     struct _igmp_interface_t*    igmpi_next;
     int				 igmpi_save_flags;	
     char*			 igmpi_buf;
@@ -134,16 +121,19 @@ typedef struct _igmp_router_t {
   pthread_t               igmprt_thr_input;
   int                     igmprt_up_socket; 
   int                     igmprt_socket;
-    } igmp_router_t;
+} igmp_router_t;
 
-#if (!defined LINUX26)
- struct ip_msfilter {
- 	__u32	imsf_multiaddr;	/* IP multicast address of group */
- 	__u32	imsf_interface;	/* local IP address of interface */
- 	__u32	imsf_fmode; 	/* filter mode */
- 	__u32	imsf_numsrc;	/* number of sources in src list */
- 	__u32  imsf_slist[1];	/* source list */
- };
+#if 0 /* not used */
+struct ip_msfilter {
+  __be32	imsf_multiaddr;	/* IP multicast address of group */
+  __be32	imsf_interface;	/* local IP address of interface */
+  __u32	imsf_fmode; 	/* filter mode */
+  __u32	imsf_numsrc;	/* number of sources in src list */
+  __be32  imsf_slist[1];	/* source list */
+};
+
+#define IP_MSFILTER_SIZE(numsrc)  (sizeof(struct ip_msfilter) \
+    - sizeof(struct in_addr) + (numsrc) * sizeof(struct in_addr))
 #endif
 
 /***
@@ -170,9 +160,24 @@ igmp_group_create(struct in_addr groupaddr);
 void
 igmp_group_cleanup(igmp_group_t* gp);
 
-void
-igmp_group_handle_isex(igmp_router_t* router, igmp_interface_t* ifp, igmp_group_t* gp,
-    int numsrc, struct in_addr *sources);
+igmp_rep_t*
+igmp_group_rep_lookup(igmp_group_t *gp, struct in_addr srcaddr);
+
+igmp_rep_t*
+igmp_group_rep_del(igmp_group_t *gp, struct in_addr srcaddr);
+
+void igmp_group_handle_isex(igmp_router_t* router, igmp_interface_t* ifp,
+    igmp_group_t* gp, int numsrc, struct in_addr *sources);
+void igmp_group_handle_isin(igmp_router_t* router, igmp_interface_t* ifp,
+    igmp_group_t* gp, int numsrc, struct in_addr *sources);
+void igmp_group_handle_toin(igmp_router_t *router, igmp_interface_t *ifp,
+    igmp_group_t *gp, int numsrc, igmp_rep_t *srcrep, struct in_addr *sources);
+void igmp_group_handle_toex(igmp_router_t *router, igmp_interface_t *ifp,
+    igmp_group_t *gp, int numsrc, struct in_addr *sources);
+void igmp_group_handle_allow(igmp_router_t *router, igmp_interface_t *ifp,
+    igmp_group_t *gp, int numsrc, struct in_addr *sources);
+void igmp_group_handle_block(igmp_router_t *router, igmp_interface_t *ifp,
+    igmp_group_t *gp, int numsrc, struct in_addr *sources);
 
 void
 igmp_group_print(igmp_group_t* gp);
@@ -194,6 +199,14 @@ igmp_interface_group_lookup(igmp_interface_t *ifp, struct in_addr groupaddr);
 void
 igmp_interface_membership_report_v12(igmp_router_t* router, igmp_interface_t* ifp,struct in_addr src, 
 	igmpr_t* report, int len, int version);
+
+void
+igmp_interface_membership_report_v3(igmp_router_t* router, igmp_interface_t* ifp, struct in_addr src,
+	 igmp_report_t* report, int len);
+
+void
+igmp_interface_leave_group_v2(igmp_router_t* router, igmp_interface_t* ifp, struct in_addr src,
+	igmpr_t* report, int len);
 
 void
 igmp_interface_print(igmp_interface_t* ifp);
@@ -222,10 +235,18 @@ igmprt_group_add(igmp_router_t* igmprt, struct in_addr ifaddr,
     struct in_addr groupaddr);
 
 void
-igmprt_timer();
+igmprt_timer(igmp_router_t* igmprt);
 
 void*
 igmprt_timer_thread(void* arg);
+
+void igmprt_timer_querier(igmp_interface_t *ifp);
+void igmprt_timer_group(igmp_router_t* router, igmp_interface_t *ifp);
+void igmprt_clear_timer_group(igmp_interface_t *ifp);
+void igmprt_timer_source (igmp_router_t* router, igmp_interface_t *ifp);
+#if (defined RALINK_SDK)
+void igmprt_timer_membership_report(igmp_interface_t *ifp);
+#endif
 
 void
 igmprt_input(igmp_router_t* igmprt, igmp_interface_t* ifp);
@@ -243,8 +264,18 @@ void
 igmprt_print(igmp_router_t* igmprt);
 
 void
+igmp_info_print(igmp_router_t *router, char *function);
+
+void
 igmprt_membership_query(igmp_router_t* igmprt, igmp_interface_t* ifp,
     struct in_addr *group, struct in_addr *sources, int numsrc, int SRSP);
+
+int send_membership_report_v12(igmp_router_t* igmprt,
+    struct in_addr group, int version);
+int send_membership_report_v3(int is_be_queried);
+int send_membership_report_v12_to_v3(struct in_addr group, int type);
+int send_membership_report_v3_to_v12(void);
+int send_leave_group_v2(struct in_addr group);
 
 void
 receive_membership_query(igmp_router_t* igmprt,igmp_interface_t *ifp,struct in_addr gp,struct in_addr *sources, u_long src_query,int numsrc, int srsp,int version);
@@ -266,6 +297,10 @@ int k_proxy_del_mfc (int socket, u_long source, u_long group);
 int k_proxy_chg_mfc(int socket,u_long source,u_long group,vifi_t outvif,int fstate);
 membership_db* create_membership(struct in_addr group,int fmode,int numsources,struct in_addr *sources);
 membership_db* find_membership(membership_db *membership,struct in_addr group);
-membership_db* deleate_membership(igmp_router_t* igmprt,struct in_addr group);
+void deleate_membership(igmp_router_t* igmprt,struct in_addr group);
 membership_db* update_multi(igmp_router_t *igmprt,struct in_addr group,int fmode,int nsources,struct in_addr *sources);
 int find_source(struct in_addr sr,int nsources,struct in_addr *sources);
+
+/* utils */
+int wordToOption(char *word);
+

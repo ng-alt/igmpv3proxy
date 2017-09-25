@@ -5,19 +5,17 @@
  * Auteur: Lahmadi.Abdelkader@loria.fr 
  * MAJ: 7 Aout 2001
  ****************************************************************************/
-#ifdef Linux
+
 #include <linux/igmp.h>
-#endif
+
 #define	IGMP_FMODE_INCLUDE	1
 #define	IGMP_FMODE_EXCLUDE	0
 
-#define	IGMP_TIMER_SCALE	10
+#define IGMP_MAX_HOST_REPORT_DELAY	10 /* max delay for response to query (in seconds) */
+#define IGMP_TIMER_SCALE	10
 #define IGMP_DEF_QI	        125
 #define IGMP_DEF_QRI		10
-/*  added start, zacker, 06/20/2009 */
-#define IGMP_DEF_QRI_LAST	1
-#define IGMP_DEF_QRI_UNIT	10
-/*  added end, zacker, 06/20/2009 */
+
 #define IGMP_DEF_RV	       	2
 #define IGMP_OQPI		((IGMP_DEF_RV * IGMP_DEF_QI) + IGMP_DEF_QRI/2)
 #define IGMP_GMI		((IGMP_DEF_RV * IGMP_DEF_QI) + IGMP_DEF_QRI)
@@ -67,8 +65,8 @@ typedef struct _igmp_src_t {
   struct in_addr          igmps_source;
   int                     igmps_timer;
   /* add a flag to indicate the forwarding state*/	
-  int 		    igmps_fstate;
-  struct igmp_src_t*      igmps_next;
+  int                     igmps_fstate;
+  struct _igmp_src_t      *igmps_next;
 } igmp_src_t;
 
 /* IGMP member type */

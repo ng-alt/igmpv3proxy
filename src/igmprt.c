@@ -15,10 +15,8 @@
 
 #include "conf.h"
 #include "igmprt.h"
-#include <acosNvramConfig.h> /*  add by aspen Bai, 12/07/2007 */
 
 /*version and isquerier variable from the config file*/
-
 int version,querier;
 /*  add start by aspen Bai, 12/07/2007 */
 extern igmp_mulsrc_t mulsrc; 
@@ -74,7 +72,7 @@ void igmp_info_print(igmp_router_t *router, char *function)
  * LDAP communication
  *
  ***************************************************************************/
-int validate(){
+int validate(void){
 
 /* validation du report provenant d'un membre d'un groupe*/
     return 0; /*  added, zacker, 06/20/2009 */
@@ -99,7 +97,7 @@ igmp_rep_create(
 {
 	igmp_rep_t* rep;
 
-	if (rep = (igmp_rep_t*) malloc(sizeof(*rep))) {
+	if ((rep = (igmp_rep_t*) malloc(sizeof(*rep)))) {
 	  rep->igmpr_addr.s_addr = srcaddr.s_addr;
 	  rep->igmpr_next  = NULL;
 	}
@@ -178,13 +176,14 @@ igmp_group_rep_add(
 
 	assert(gp != NULL);
 	/* Return the source if it's already present */
-	if (rep = igmp_group_rep_lookup(gp, srcaddr))
+	if ((rep = igmp_group_rep_lookup(gp, srcaddr)))
 	  return rep;
 	/* Create the source and add to the set */ 
-	if (rep = igmp_rep_create(srcaddr)) {
+	if ((rep = igmp_rep_create(srcaddr))) {
 	  rep->igmpr_next = (igmp_rep_t *)gp->igmpg_members;
 	  gp->igmpg_members = rep;
 	}
+
 	return rep;
 }
 
@@ -220,7 +219,7 @@ igmp_src_create(
 {
 	igmp_src_t* src;
 
-	if (src = (igmp_src_t*) malloc(sizeof(*src))) {
+	if ((src = (igmp_src_t*) malloc(sizeof(*src)))) {
 	  src->igmps_source.s_addr = srcaddr.s_addr;
 	  src->igmps_timer = 0;
 	  src->igmps_fstate = TRUE;
@@ -303,13 +302,14 @@ igmp_group_src_add(
 
 	assert(gp != NULL);
 	/* Return the source if it's already present */
-	if (src = igmp_group_src_lookup(gp, srcaddr))
+	if ((src = igmp_group_src_lookup(gp, srcaddr)))
 	  return src;
 	/* Create the source and add to the set */ 
-	if (src = igmp_src_create(srcaddr)) {
-	  src->igmps_next = (igmp_src_t *)gp->igmpg_sources;
+	if ((src = igmp_src_create(srcaddr))) {
+	  src->igmps_next = gp->igmpg_sources;
 	  gp->igmpg_sources = src;
 	}
+
 	return src;
 }
 
@@ -332,7 +332,7 @@ igmp_group_create(
 {
 	igmp_group_t* gp;
 
-	if (gp = (igmp_group_t*) malloc(sizeof(*gp))) {
+	if ((gp = (igmp_group_t*) malloc(sizeof(*gp)))) {
 		gp->igmpg_addr.s_addr = groupaddr.s_addr;
 		gp->igmpg_fmode = IGMP_FMODE_INCLUDE;
 		gp->igmpg_version = IGMP_VERSION_3;/*default version is V3*/
@@ -393,7 +393,7 @@ igmp_interface_create(
   igmp_interface_t* ifp = NULL; /*  modified, zacker, 06/20/2009 */
   struct ip_mreq mreq;
   char ra[4];
-  int i, prom;
+  int i;
   short flags;
   
 	if (((ifp = (igmp_interface_t*) malloc(sizeof(*ifp)))) == NULL)
@@ -453,7 +453,7 @@ igmp_interface_create(
 	ifp->igmpi_version = version; /* IGMP_VERSION_3 */
 	ifp->igmpi_qi = IGMP_DEF_QI;
 	/*  modified start, zacker, 06/20/2009 */
-	ifp->igmpi_qri = (IGMP_DEF_QRI * IGMP_DEF_QRI_UNIT);
+	ifp->igmpi_qri = IGMP_DEF_QRI;
 	ifp->igmpi_oqp = IGMP_OQPI;
 	ifp->ifp_udp_socket = -1;
 	/*  modified end, zacker, 06/20/2009 */
@@ -568,10 +568,10 @@ igmp_interface_group_add(
 
 	assert(ifp != NULL);
 	/* Return the group if it's already present */
-	if (gp = igmp_interface_group_lookup(ifp, groupaddr))
+	if ((gp = igmp_interface_group_lookup(ifp, groupaddr)))
 		return gp;
 	/* Create the group and add to the set */ 
-	if (gp = igmp_group_create(groupaddr)) {
+	if ((gp = igmp_group_create(groupaddr))) {
 		gp->igmpg_next = ifp->igmpi_groups;
 		ifp->igmpi_groups = gp;
 
@@ -799,7 +799,7 @@ igmprt_init(
 	igmp_router_t* igmprt)
 {
 	igmprt->igmprt_interfaces = NULL;
-	igmprt->igmprt_thr_timer = igmprt->igmprt_thr_input = NULL;
+	igmprt->igmprt_thr_timer = igmprt->igmprt_thr_input = 0;
 	igmprt->igmprt_flag_timer = 0;
 	igmprt->igmprt_flag_input = 0;
 	/*create datagram socket to tell igmpv3 host about reports to send on upstream interface*/
@@ -825,8 +825,8 @@ void
 igmprt_destroy(igmp_router_t* igmprt)
 {
 	igmp_interface_t *ifp, *ifp2;
-	igmp_group_t *gp;
-	igmp_src_t *sp;
+	//igmp_group_t *gp;
+	//igmp_src_t *sp;
 
 	for (ifp = igmprt->igmprt_interfaces; ifp;) {
 		ifp2 = ifp;
@@ -887,7 +887,7 @@ igmprt_group_lookup(
 {
 	igmp_interface_t *ifp; 
 
-	if (ifp = igmprt_interface_lookup(igmprt, ifaddr))
+	if ((ifp = igmprt_interface_lookup(igmprt, ifaddr)))
 		return igmp_interface_group_lookup(ifp, groupaddr);
 	return NULL;
 }
@@ -907,10 +907,10 @@ igmprt_interface_add(
 	igmp_interface_t *ifp;
 
 	/* Return the interface if it's already in the set */
-	if (ifp = igmprt_interface_lookup(igmprt, ifaddr))
+	if ((ifp = igmprt_interface_lookup(igmprt, ifaddr)))
 		return ifp;
 	/* Create the interface and add to the set */
-	if (ifp = igmp_interface_create(ifaddr, ifname,index)) {
+	if ((ifp = igmp_interface_create(ifaddr, ifname,index))) {
 		ifp->igmpi_next = igmprt->igmprt_interfaces;
 		igmprt->igmprt_interfaces = ifp;
 	}
@@ -929,9 +929,9 @@ igmprt_group_add(
 	struct in_addr groupaddr)
 {
 	igmp_interface_t *ifp; 
-	igmp_group_t *gp; 
+	//igmp_group_t *gp; 
 
-	if (ifp = igmprt_interface_lookup(igmprt, ifaddr))
+	if ((ifp = igmprt_interface_lookup(igmprt, ifaddr)))
 		return NULL;
 	return igmp_interface_group_add(igmprt,ifp, groupaddr);
 }
@@ -945,7 +945,7 @@ void
 igmprt_timer(igmp_router_t* igmprt)
 {
   igmp_interface_t* ifp;
-  igmp_group_t* gp;
+  //igmp_group_t* gp;
   struct in_addr zero;
   
   zero.s_addr = 0;
@@ -973,8 +973,8 @@ igmprt_timer(igmp_router_t* igmprt)
     if (ifp->igmpi_isquerier == TRUE) {
       /* Deal with the general query */
       if (--ifp->igmpi_ti_qi <= 0) {
-	ifp->igmpi_ti_qi = ifp->igmpi_qi;
-	igmprt_membership_query(igmprt, ifp, &zero, NULL, 0, 0);
+    ifp->igmpi_ti_qi = ifp->igmpi_qi;
+    igmprt_membership_query(igmprt, ifp, &zero, NULL, 0, 0);
       }
     }
 
@@ -991,8 +991,6 @@ igmprt_timer(igmp_router_t* igmprt)
     /*handle scheduled query*/
     send_sh_query(igmprt,ifp);
   }
-
-
 }
 
 /*
@@ -1028,7 +1026,7 @@ igmprt_input(igmp_router_t* igmprt, igmp_interface_t* ifp)
 	struct cmsghdr *cmsg;
 	char *ctrl = (char *)malloc(MAXCTRLSIZE);*/
 	
-	int if_index;
+	//int if_index;
 	struct sockaddr_in sin;
 	struct ip *iph;
 	unsigned char *ptype;
@@ -1192,17 +1190,19 @@ igmprt_input_thread(void* arg)
 		return NULL;
 	}
 	/* Wait for data on all sockets */
-	while (1) {
+	while (igmprt->igmprt_flag_input) {
 		FD_COPY(&allset, &rset);
 		n = select(maxfd+1, &rset, NULL, NULL, NULL);
-		if (n == 0)
-			sleep(1);
+		if (n <= 0) {
+			usleep(1000000);
+			continue;
+		}
 		for (ifp = igmprt->igmprt_interfaces; ifp; ifp = ifp->igmpi_next) {	
 			if (FD_ISSET(ifp->igmpi_socket, &rset) || FD_ISSET(igmprt->igmprt_socket,&rset))
 				; /*  modify by aspen Bai, 01/29/2008 */
 				/* Let igmprt_input to block , not select */
 			igmprt_input(igmprt, ifp);
-			if (--n == 0)
+			if (--n <= 0)
 				break;
 		}
 	}
@@ -1225,7 +1225,7 @@ igmprt_start(igmp_router_t* igmprt)
 
 	/* Create and start the timer handling (thread) */
 	igmprt->igmprt_flag_timer = 1;
-	igmprt->igmprt_thr_timer = NULL;
+	igmprt->igmprt_thr_timer = 0;
 	if ((err = pthread_create(&igmprt->igmprt_thr_timer, NULL, 
 		igmprt_timer_thread, (void*) igmprt)) != 0)
 		printf("couldn't start timer thread\n");
@@ -1233,7 +1233,7 @@ igmprt_start(igmp_router_t* igmprt)
 	/* Create and start input handling (thread) */
 
 	igmprt->igmprt_flag_input = 1;
-	igmprt->igmprt_thr_input = NULL;
+	igmprt->igmprt_thr_input = 0;
 	if ((err = pthread_create(&igmprt->igmprt_thr_input, NULL, 
 		igmprt_input_thread, (void*) igmprt)) != 0)
 		printf("couldn't start input thread\n");
@@ -1248,14 +1248,12 @@ igmprt_start(igmp_router_t* igmprt)
 void
 igmprt_stop(igmp_router_t* igmprt)
 {
-	igmp_interface_t* ifp;
-	int i=0;
+	//igmp_interface_t* ifp;
+	//int i=0;
 
 	/* Return if not running */ 
-	if (! igmprt->igmprt_running)
+	if (!igmprt->igmprt_running)
 		return;
-
-	k_stop_proxy(igmprt->igmprt_socket);
 
 	/* Signal threads to stop */
 	igmprt->igmprt_flag_timer = 0;
@@ -1264,10 +1262,14 @@ igmprt_stop(igmp_router_t* igmprt)
 	/* Wait for the threads to finish */
 	/* XXX Should use attach */ 
 	igmprt->igmprt_running = 0;
-	/* Make sure select of  input-thread wakes up */	
+	/* Make sure select of  input-thread wakes up */
 	/*if ((ifp = igmprt->igmprt_interfaces))
 		write(ifp->igmpi_socket, &i, sizeof(i));*/
-	sleep(3);
+
+	k_stop_proxy(igmprt->igmprt_socket);
+	close(igmprt->igmprt_socket);
+
+	//sleep(3);
 }
 
 /*
@@ -1299,7 +1301,7 @@ int go_on = 1;
 char* pidfile = DEFAULT_PID_FILE_NAME;
 
 void
-write_pid()
+write_pid(void)
 {
 	FILE *fp = fopen(pidfile, "w");
 	if (fp) {
@@ -1311,9 +1313,35 @@ write_pid()
 void
 done(int sig)
 {
+	fprintf(stderr, "%s(%d):Got SIGNAL %d\n", __FUNCTION__, __LINE__, sig);
 	igmprt_destroy(&router);
 	unlink(pidfile);
 	exit(0);
+}
+
+void igmp_dump(int sig)
+{
+    igmp_router_t *rt = &router;
+    igmp_interface_t *ifp;
+    igmp_group_t *gp;
+    igmp_src_t *src;
+    igmp_rep_t *rep;
+    printf("\nIGMP Table\n");
+    printf("-----------------\n");
+    printf("%-14s %-9s %-14s %-5s %-14s %-14s\n",
+        "interface","version","groups","mode","source","Members");
+    for (ifp=rt->igmprt_interfaces;ifp;ifp=(igmp_interface_t *)ifp->igmpi_next){
+        printf("%-14s 0x%x\n",inet_ntoa(ifp->igmpi_addr),ifp->igmpi_version);
+        for(gp=ifp->igmpi_groups;gp;gp=(igmp_group_t*)gp->igmpg_next){
+            printf("%32s %11s\n",inet_ntoa(gp->igmpg_addr),
+                (gp->igmpg_fmode == IGMP_FMODE_INCLUDE)? "INCLUDE":"EXCLUDE");
+            for (src=gp->igmpg_sources;src;src=(igmp_src_t *)src->igmps_next)
+                printf("%50s\n",inet_ntoa(src->igmps_source));
+            for (rep=gp->igmpg_members;rep;rep=(igmp_rep_t *)rep->igmpr_next)
+                printf("%70s\n",inet_ntoa(rep->igmpr_addr));
+        }
+    }
+    printf("-----------------\n");
 }
 
 void parse_option(void)
@@ -1373,13 +1401,13 @@ void parse_option(void)
 int
 main(int argc, char *argv[])
 {
-	struct in_addr addr;
+	//struct in_addr addr;
 	struct sockaddr_in *psin;
 	interface_list_t *ifl, *ifp;
-	char cmd[BUF_CMD];
-	char *i,*group,*str1;
-	igmp_group_t *gp;
-	struct in_addr gr,interface;
+	//char cmd[BUF_CMD];
+	//char *i,*group,*str1;
+	//igmp_group_t *gp;
+	//struct in_addr gr,interface;
 	vifi_t vifi;
 
 	/* log_level = LOG_INFO; */
@@ -1388,7 +1416,7 @@ main(int argc, char *argv[])
 	//daemon(0,0); //aspen
 
 	/* Initialize */
-	signal(SIGUSR1, done);
+	signal(SIGUSR1, igmp_dump);
 	signal(SIGKILL, done);
 	signal(SIGABRT, done);
 	signal(SIGTERM, done);
@@ -1443,8 +1471,8 @@ main(int argc, char *argv[])
 	/* Start the router */
 	igmprt_start(&router);
 
-		while (go_on) 
-		{
+	while (go_on)
+	{
 		/* Read and process commands */
 		/*  mark by aspen Bai, 01/29/2008 */
 		/* we don't need to deal with process_cmd because gproxy runs in background */
@@ -1452,13 +1480,13 @@ main(int argc, char *argv[])
 		/*fflush(stdout);
 		if (fgets(cmd, BUF_CMD, stdin) != NULL)
 			go_on=process_cmd(cmd);*/
-		} // while
+	} // while
 
 	/* Done */
 	done(0);
 	return 0;
 }
-void print_usage()
+void print_usage(void)
 {
 	printf("g adress multicast:show a group state\n");
 	printf("s adress unicast  :show a source state\n");
@@ -1466,14 +1494,13 @@ void print_usage()
 	printf("q		  :quit\n");
 }
 /* Process a command */
-int process_cmd (cmd)
-	char *cmd;
+int process_cmd(char *cmd)
 {
 	char *line;
-	char group[20],i[20],source[20];
+	char group[20], source[20];
 	igmp_group_t *gp;
 	igmp_src_t *src;
-	struct in_addr interface,gr,srcaddr;
+	struct in_addr gr,srcaddr;
 	igmp_interface_t *ifp;
 	/* skip white spaces */
 	line = cmd + 1;
@@ -1523,7 +1550,7 @@ int process_cmd (cmd)
 #ifdef IGMP_DEBUG
 		 igmprt_print(&router);   //with this more details*/
 #endif
-		 igmp_info_print(&router, __FUNCTION__);  /* but this more beautiful*/
+		 igmp_info_print(&router, (char *)__FUNCTION__);  /* but this more beautiful*/
 		return 1;
 	       default	:
 		  printf("-1\n");
@@ -1576,7 +1603,8 @@ igmp_group_cleanup(
 	  ifp->igmpi_groups = (igmp_group_t *)g->igmpg_next;
 
 	  }
-	} 
+	}
+
 	free(gp);	
 }
 
@@ -1612,7 +1640,7 @@ void igmp_interface_leave_group_v2(
 	igmpr_t* report,
 	int len)
 {
-	igmp_group_t* gp,gp1;
+	igmp_group_t *gp;
 	igmp_rep_t *rep;
 	int count=0;
 
@@ -1648,7 +1676,7 @@ void igmp_interface_leave_group_v2(
 		/*  added, zacker, 05/07/2009, @cleanup_after_leave */
 		igmp_group_cleanup(gp);
 	}
-	igmp_info_print(router, __FUNCTION__);
+	igmp_info_print(router, (char *)__FUNCTION__);
 }
 /*  add end by aspen Bai, 01/07/2008 */
 
