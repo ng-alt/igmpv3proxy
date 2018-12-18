@@ -463,11 +463,13 @@ igmp_interface_create(
 		   ifp->igmpi_type = UPSTREAM;
 		   upstream = ifp->igmpi_addr.s_addr;
 		   wan_index = index;
+#ifdef BT_IGMP_SUPPORT
        if((strcmp(ifp->igmpi_name,"vlan2")==0) && acosNvramConfig_match("wan_proto","pppoe") && duplicate_igmp_on_vlan2 )
        {       	
     		   wan_igmp_socket2 = ifp->igmpi_socket;
     	 }
        else
+#endif
 		   wan_igmp_socket = ifp->igmpi_socket;
 		}
 		else
